@@ -2,6 +2,8 @@ import pandas as pd
 import os
 from sklearn.model_selection import train_test_split
 import logging
+import yaml
+
 
 
 
@@ -21,12 +23,28 @@ log_file_path = os.path.join(log_dir,'data_ingestion.log')
 file_handler = logging.FileHandler(log_file_path)
 file_handler.setLevel('DEBUG')
 
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(massage)s')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
 file_handler.setFormatter(formatter)
 
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
+
+def load_params(params_path:str) -> dict:
+    """Load parameters from a YAML file"""
+    try:
+        with open(params_path,'r') as file:
+             params = yaml.safe_load(file)
+        logger.debug('Parameters retrieved from %s', params_path)
+        return params
+    except FileNotFoundError:
+        logger.error('File not found: %s',params_path)
+        raise
+    except yaml.YAMLError as e:
+        logger.error('YAML  error: %s',e)
+    except Exception as e:
+        logger.error('Unexpected erro: %s',e)
+        raise 
 
 
 def load_data(data_url:str) -> pd.DataFrame:
@@ -72,7 +90,11 @@ def save_data(train_data: pd.DataFrame, test_data: pd.DataFrame, data_path:str) 
 
 def main():
     try:
-        test_size = 0.2
+        params = load_params(params_path='params.yaml')
+        test_size = params['data_ingestion']['test_size']
+
+
+       # test_size = 0.2
         data_path ='https://raw.githubusercontent.com/vikashishere/YT-MLOPS-Complete-ML-Pipeline/refs/heads/main/experiments/spam.csv'
         df = load_data(data_url=data_path)
         final_df = preprocess_data(df)
